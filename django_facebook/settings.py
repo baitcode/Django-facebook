@@ -7,6 +7,8 @@ FACEBOOK_APP_SECRET = getattr(settings, 'FACEBOOK_APP_SECRET', None)
 FACEBOOK_DEFAULT_SCOPE = getattr(settings, 'FACEBOOK_DEFAULT_SCOPE', [
     'email', 'user_about_me', 'user_birthday', 'user_website'])
 
+
+
 # Absolute canvas page url as per facebook standard
 FACEBOOK_CANVAS_PAGE = getattr(settings, 'FACEBOOK_CANVAS_PAGE',
                                'http://apps.facebook.com/fashiolista_test/')

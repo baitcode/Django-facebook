@@ -19,6 +19,7 @@ bulkloader-*
 .*
 .settings/
 .settings
+.idea
 
 #app specific
 facebook_example/django_fb_test
