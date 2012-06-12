@@ -213,7 +213,6 @@ def get_facebook_user_converter_class():
     current_module = import_module(app_label)
 
     for path_part in module_path[1:]:
-        print current_module, path_part
         current_module = getattr(current_module, path_part, None)
 
     return current_module
