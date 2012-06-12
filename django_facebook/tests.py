@@ -7,7 +7,7 @@ from django_facebook.connect import (_register_user, connect_user,
                                      CONNECT_ACTIONS)
 from django_facebook.tests_utils.base import FacebookTest
 from django_facebook.utils import get_profile_class
-from django_facebook.api import (get_facebook_graph, FacebookUserConverter,
+from django_facebook.api import (get_facebook_graph, get_facebook_user_converter_class,
                                  get_persistent_graph)
 from django_facebook import signals
 import logging
@@ -40,7 +40,8 @@ class UserConnectTest(FacebookTest):
         request.session = {}
         request.user = AnonymousUser()
         graph = get_persistent_graph(request, access_token='paul')
-        converter = FacebookUserConverter(graph)
+        klass = get_facebook_user_converter_class()
+        converter = klass(graph)
         base_data = converter.facebook_profile_data()
         self.assertEqual(base_data['gender'], 'male')
         data = converter.facebook_registration_data()
@@ -51,7 +52,8 @@ class UserConnectTest(FacebookTest):
     def test_full_connect(self):
         #going for a register, connect and login
         graph = get_facebook_graph(access_token='short_username')
-        FacebookUserConverter(graph)
+        klass = get_facebook_user_converter_class()
+        klass(graph)
         action, user = connect_user(self.request, facebook_graph=graph)
         self.assertEqual(action, CONNECT_ACTIONS.REGISTER)
         action, user = connect_user(self.request, facebook_graph=graph)
@@ -66,7 +68,8 @@ class UserConnectTest(FacebookTest):
 
     def test_utf8(self):
         graph = get_facebook_graph(access_token='unicode_string')
-        facebook = FacebookUserConverter(graph)
+        klass = get_facebook_user_converter_class()
+        facebook = klass(graph)
         action, user = connect_user(self.request, facebook_graph=graph)
 
     def test_invalid_token(self):
@@ -95,7 +98,8 @@ class UserConnectTest(FacebookTest):
 
     def test_gender(self):
         graph = get_facebook_graph(access_token='new_user')
-        facebook = FacebookUserConverter(graph)
+        klass = get_facebook_user_converter_class()
+        facebook = klass(graph)
         data = facebook.facebook_registration_data()
         self.assertEqual(data['gender'], 'm')
 
@@ -198,7 +202,8 @@ class SignalTest(FacebookTest):
         signals.facebook_post_update.connect(post_update, sender=Profile)
 
         graph = get_facebook_graph(access_token='short_username')
-        facebook = FacebookUserConverter(graph)
+        klass = get_facebook_user_converter_class()
+        facebook = klass(graph)
         user = _register_user(self.request, facebook)
         self.assertEqual(hasattr(user, 'registered_signal'), True)
         self.assertEqual(hasattr(user.get_profile(),

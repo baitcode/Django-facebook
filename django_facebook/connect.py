@@ -11,7 +11,7 @@ from django.utils import simplejson as json
 from django_facebook import settings as facebook_settings
 from django_facebook import exceptions as facebook_exceptions
 from django_facebook import signals
-from django_facebook.api import get_facebook_graph, FacebookUserConverter
+from django_facebook.api import get_facebook_graph, get_facebook_user_converter_class
 from django_facebook.utils import (get_registration_backend, get_form_class,
                                    get_profile_class)
 import urllib2
@@ -41,9 +41,10 @@ def connect_user(request, access_token=None, facebook_graph=None):
     - login
     - register
     '''
-    user = None
     graph = facebook_graph or get_facebook_graph(request, access_token)
-    facebook = FacebookUserConverter(graph)
+
+    klass = get_facebook_user_converter_class()
+    facebook = klass(graph)
 
     assert facebook.is_authenticated()
     facebook_data = facebook.facebook_profile_data()
@@ -344,7 +345,8 @@ def update_connection(request, graph):
     - sets the facebook_id if nothing is specified
     - stores friends and likes if possible
     '''
-    facebook = FacebookUserConverter(graph)
+    klass = get_facebook_user_converter_class()
+    facebook = klass(graph)
     user = _connect_user(request, facebook, overwrite=False)
     _update_likes_and_friends(request, user, facebook)
     _update_access_token(user, graph)

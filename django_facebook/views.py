@@ -11,7 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 # NOTE: from inside the application, you can directly import the file
 from django_facebook import exceptions as facebook_exceptions, \
     settings as facebook_settings
-from django_facebook.api import get_persistent_graph, FacebookUserConverter, \
+from django_facebook.api import get_persistent_graph, get_facebook_user_converter_class, \
     require_persistent_graph
 from django_facebook.canvas import generate_oauth_url
 from django_facebook.connect import CONNECT_ACTIONS, connect_user
@@ -87,7 +87,8 @@ def connect(request):
         graph = get_persistent_graph(request)
         if graph:
             logger.info('found a graph object')
-            facebook = FacebookUserConverter(graph)
+            klass = get_facebook_user_converter_class()
+            facebook = klass(graph)
             
             if facebook.is_authenticated():
                 logger.info('facebook is authenticated')
@@ -146,7 +147,8 @@ def connect_async_ajax(request):
     graph = get_persistent_graph(request)
     output = {}
     if graph:
-        FacebookUserConverter(graph)
+        klass = get_facebook_user_converter_class()
+        klass(graph)
         task = facebook_tasks.async_connect_user(request, graph)
         output['task_id'] = task.id
     from open_facebook.utils import json

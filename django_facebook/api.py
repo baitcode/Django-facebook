@@ -1,6 +1,8 @@
+# coding=utf-8
 from django.forms.util import ValidationError
 from django.utils import simplejson as json
-from django_facebook import settings as facebook_settings
+from django.utils.importlib import import_module
+from django_facebook import settings as facebook_settings, settings
 from django_facebook.utils import mass_get_or_create, cleanup_oauth_url,\
     get_profile_class
 from open_facebook.exceptions import OpenFacebookException
@@ -203,6 +205,18 @@ def _add_current_user_id(graph, user):
         if facebook_id:
             graph.current_user_id = facebook_id
 
+
+def get_facebook_user_converter_class():
+    profile_string = settings.FACEBOOK_CONVERTER_MODULE
+    module_path = profile_string.split('.')
+    app_label = module_path[0]
+    current_module = import_module(app_label)
+
+    for path_part in module_path[1:]:
+        print current_module, path_part
+        current_module = getattr(current_module, path_part, None)
+
+    return current_module
 
 class FacebookUserConverter(object):
     '''
@@ -407,10 +421,12 @@ class FacebookUserConverter(object):
         - email
         - name
         '''
+        username = None
         link = facebook_data.get('link')
         if link:
             username = link.split('/')[-1]
             username = cls._username_slugify(username)
+
         if 'profilephp' in username:
             username = None
 

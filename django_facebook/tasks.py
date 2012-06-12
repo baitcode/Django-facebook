@@ -16,9 +16,10 @@ def store_likes(user, likes):
     :param friends: List of your likes
     :type friends: list
     '''
-    from django_facebook.api import FacebookUserConverter
+    from django_facebook.api import get_facebook_user_converter_class
+    klass = get_facebook_user_converter_class()
     logger.info('celery is storing %s likes' % len(likes))
-    FacebookUserConverter._store_likes(user, likes)
+    klass._store_likes(user, likes)
     return likes
 
 
@@ -58,9 +59,10 @@ def store_friends(user, friends):
     :param friends: List of your friends
     :type friends: list
     '''
-    from django_facebook.api import FacebookUserConverter
+    from django_facebook.api import get_facebook_user_converter_class
+    klass  = get_facebook_user_converter_class()
     logger.info('celery is storing %s friends' % len(friends))
-    FacebookUserConverter._store_friends(user, friends)
+    klass._store_friends(user, friends)
     return friends
 
 
