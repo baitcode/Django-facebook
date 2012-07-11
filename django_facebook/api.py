@@ -19,7 +19,6 @@ def require_persistent_graph(request, *args, **kwargs):
     Just like get_persistent graph, but instead of returning None
     raise an OpenFacebookException if we can't access facebook
     '''
-    kwargs['raise_'] = True
     graph = get_persistent_graph(request, *args, **kwargs)
     if not graph:
         raise OpenFacebookException('please authenticate')
@@ -75,7 +74,7 @@ def get_persistent_graph(request, *args, **kwargs):
 
 
 
-def get_facebook_graph(request=None, access_token=None, redirect_uri=None, raise_=False):
+def get_facebook_graph(request=None, access_token=None, redirect_uri=None):
     '''
     given a request from one of these
     - js authentication flow (signed cookie)
@@ -93,15 +92,13 @@ def get_facebook_graph(request=None, access_token=None, redirect_uri=None, raise
     specify redirect_uri if you are not posting and recieving the code
     on the same page
     '''
-    #this is not a production flow, but very handy for testing
-    if not access_token and request.REQUEST.get('access_token'):
-        access_token = request.REQUEST['access_token']
     # should drop query params be included in the open facebook api,
     # maybe, weird this...
     from open_facebook import OpenFacebook, FacebookAuthorization
     from django.core.cache import cache
     parsed_data = None
     expires = None
+    
     if hasattr(request, 'facebook'):
         graph = request.facebook
         _add_current_user_id(graph, request.user)
@@ -160,7 +157,7 @@ def get_facebook_graph(request=None, access_token=None, redirect_uri=None, raise
                         logger.info(
                             'trying to convert the code with redirect uri: %s',
                             redirect_uri)
-                        #This is realy slow, that's why it's cached
+                        #TODO: we should cache this somehow, lookup is slowwwww
                         token_response = FacebookAuthorization.convert_code(
                             code, redirect_uri=redirect_uri)
                         expires = token_response.get('expires')
@@ -174,26 +171,17 @@ def get_facebook_graph(request=None, access_token=None, redirect_uri=None, raise
                         # permissions and then try to reauthenticate
                         logger.warn('Error when trying to convert code %s',
                                     unicode(e))
-                        if raise_:
-                            raise
-                        else:
-                            return None
+                        return None
             elif request.user.is_authenticated():
                 #support for offline access tokens stored in the users profile
                 profile = request.user.get_profile()
                 access_token = getattr(profile, 'access_token', None)
                 if not access_token:
-                    if raise_:
-                        message = 'Couldnt find an access token in the request or the users profile'
-                        raise open_facebook_exceptions.OAuthException(message)
-                    else:
-                        return None
-            else:
-                if raise_:
-                    message = 'Couldnt find an access token in the request or cookies'
-                    raise open_facebook_exceptions.OAuthException(message)
-                else:
                     return None
+            else:
+                return None
+                # raise exceptions.MissingParameter(
+                #     'Cant find code or access token')
 
     graph = OpenFacebook(access_token, parsed_data, expires=expires)
     #add user specific identifiers

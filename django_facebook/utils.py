@@ -28,12 +28,20 @@ def test_permissions(request, scope_list, redirect_uri=None):
     Call Facebook me/permissions to see if we are allowed to do this
     '''
     from django_facebook.api import get_persistent_graph
-    
+    from open_facebook import exceptions as facebook_exceptions
     fb = get_persistent_graph(request, redirect_uri=redirect_uri)
     permissions_dict = {}
     if fb:
-        #see what permissions we have
-        permissions_dict = fb.permissions()
+        try:
+            permissions_response = fb.get('me/permissions')
+            permissions = permissions_response['data'][0]
+        except facebook_exceptions.OAuthException:
+            # this happens when someone revokes their permissions
+            # while the session is still stored
+            permissions = {}
+        permissions_dict = dict([(k, bool(int(v)))
+                                 for k, v in permissions.items()
+                                 if v == '1' or v == 1])
 
     # see if we have all permissions
     scope_allowed = True
@@ -63,7 +71,6 @@ def get_oauth_url(request, scope, redirect_uri=None, extra_params=None):
     query_dict['scope'] = ','.join(scope)
     query_dict['client_id'] = facebook_settings.FACEBOOK_APP_ID
     redirect_uri = redirect_uri or request.build_absolute_uri()
-    current_uri = redirect_uri
 
     # set attempt=1 to prevent endless redirect loops
     if 'attempt=1' not in redirect_uri:
@@ -72,10 +79,24 @@ def get_oauth_url(request, scope, redirect_uri=None, extra_params=None):
         else:
             redirect_uri += '&attempt=1'
 
+    # add the extra params if specified
+    # TODO: renable this and fix the url merging!!
+    if extra_params and False:
+        # from open_facebook.utils import merge_urls
+        # TODO: Properly merge the url params
+        params_query_dict = QueryDict('', True)
+        params_query_dict.update(extra_params)
+        query_string = params_query_dict.urlencode()
+        if '?' not in redirect_uri:
+            redirect_uri += '?'
+        else:
+            redirect_uri += '&'
+        redirect_uri += query_string
+
     query_dict['redirect_uri'] = redirect_uri
-    oauth_url = 'https://www.facebook.com/dialog/oauth?'
-    oauth_url += query_dict.urlencode()
-    return oauth_url, current_uri, redirect_uri
+    url = 'https://www.facebook.com/dialog/oauth?'
+    url += query_dict.urlencode()
+    return url, redirect_uri
 
 
 class CanvasRedirect(HttpResponse):
@@ -330,27 +351,6 @@ def cleanup_oauth_url(redirect_uri):
 
     return redirect_uri
 
-
-def replication_safe(f):
-    '''
-    Usually views which do a POST will require the next page to be 
-    read from the master database. (To prevent issues with replication lag).
-    
-    However certain views like login do not have this issue.
-    They do a post, but don't modify data which you'll show on subsequent pages.
-    
-    This decorators marks these views as safe.
-    This ensures requests on the next page are allowed to use the slave db
-    '''
-    from functools import wraps
-
-    @wraps(f)
-    def wrapper(request, *args, **kwargs):
-        request.replication_safe = True
-        response = f(request, *args, **kwargs)
-        return response
-    
-    return wrapper
 
 def get_class_from_string(path, default='raise'):
     """

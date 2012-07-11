@@ -15,13 +15,11 @@ from django_facebook.api import get_persistent_graph, get_facebook_user_converte
     require_persistent_graph
 from django_facebook.canvas import generate_oauth_url
 from django_facebook.connect import CONNECT_ACTIONS, connect_user
-from django_facebook.utils import next_redirect, get_registration_backend,\
-    replication_safe
+from django_facebook.utils import next_redirect, get_registration_backend
 from django_facebook.decorators import (facebook_required,
                                         facebook_required_lazy)
 from open_facebook.utils import send_warning
 from open_facebook.exceptions import OpenFacebookException
-from django.shortcuts import redirect
 
 
 logger = logging.getLogger(__name__)
@@ -68,7 +66,6 @@ def image_upload(request):
 
 
 @csrf_exempt
-@replication_safe
 @facebook_required_lazy(extra_params=dict(facebook_login='1'))
 def connect(request):
     '''
@@ -85,8 +82,9 @@ def connect(request):
     facebook_login = bool(int(request.REQUEST.get('facebook_login', 0)))
     
     if facebook_login:
+        require_persistent_graph(request)
         logger.info('trying to connect using facebook')
-        graph = require_persistent_graph(request)
+        graph = get_persistent_graph(request)
         if graph:
             logger.info('found a graph object')
             klass = get_facebook_user_converter_class()
@@ -120,9 +118,6 @@ def connect(request):
                 elif action is CONNECT_ACTIONS.REGISTER:
                     #hook for tying in specific post registration functionality
                     response = backend.post_registration_redirect(request, user)
-                    #compatability for django registration backends which return tuples instead of a response
-                    #alternatively we could wrap django registration backends, but that would be hard to understand
-                    response = response if isinstance(response, HttpResponse) else redirect(response)
                     return response
         else:
             if 'attempt' in request.GET:
