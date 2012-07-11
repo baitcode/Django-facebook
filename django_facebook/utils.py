@@ -352,8 +352,6 @@ def cleanup_oauth_url(redirect_uri):
     return redirect_uri
 
 
-<<<<<<< HEAD
-=======
 def replication_safe(f):
     '''
     Usually views which do a POST will require the next page to be 
@@ -376,7 +374,6 @@ def replication_safe(f):
     return wrapper
 
 
->>>>>>> upstream/master
 def get_class_from_string(path, default='raise'):
     """
     Return the class specified by the string.
