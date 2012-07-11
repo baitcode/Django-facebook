@@ -28,7 +28,6 @@ def test_permissions(request, scope_list, redirect_uri=None):
     Call Facebook me/permissions to see if we are allowed to do this
     '''
     from django_facebook.api import get_persistent_graph
-    from open_facebook import exceptions as facebook_exceptions
     
     fb = get_persistent_graph(request, redirect_uri=redirect_uri)
     permissions_dict = {}
@@ -44,11 +43,10 @@ def test_permissions(request, scope_list, redirect_uri=None):
 
     # raise if this happens after a redirect though
     if not scope_allowed and request.GET.get('attempt'):
-        raise facebook_exceptions.PermissionException(
-            'Somehow facebook is not giving us the permissions needed, '\
-            'lets break instead of endless redirects. If you set '\
-            'FACEBOOK_PERMISSION_DENIED_REDIRECT we will redirect to '\
-            'that page. Fb was %s and permissions %s' % (fb, permissions_dict))
+        raise ValueError(
+              'Somehow facebook is not giving us the permissions needed, ' \
+              'lets break instead of endless redirects. Fb was %s and ' \
+              'permissions %s' % (fb, permissions_dict))
 
     return scope_allowed
 

@@ -55,7 +55,3 @@ FACEBOOK_REGISTRATION_BACKEND = getattr(settings, 'FACEBOOK_REGISTRATION_BACKEND
 FACEBOOK_LOGIN_DEFAULT_REDIRECT = getattr(settings, 'FACEBOOK_LOGIN_DEFAULT_REDIRECT', '/')
 
 FACEBOOK_CONVERTER_MODULE = getattr(settings, 'FACEBOOK_CONVERTER_MODULE', 'django_facebook.api.FacebookUserConverter')
-
-# Redirect to if we get permission denied on login processes
-FACEBOOK_PERMISSION_DENIED_REDIRECT = getattr(settings,
-    'FACEBOOK_PERMISSION_DENIED_REDIRECT', None)
