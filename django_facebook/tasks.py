@@ -1,7 +1,14 @@
 from celery import task
 from django.db import IntegrityError
 import logging
+
 logger = logging.getLogger(__name__)
+
+
+@task.task(ignore_result=True)
+def extend_access_token(profile, access_token):
+    results = profile._extend_access_token(access_token)
+    return results
 
 
 @task.task(ignore_result=True)
@@ -12,7 +19,7 @@ def store_likes(user, likes):
 
     :param user: The user for which we are storing
     :type user: User object
-    
+
     :param friends: List of your likes
     :type friends: list
     '''
@@ -28,13 +35,13 @@ def get_and_store_likes(user, facebook):
     '''
     Since facebook is quite slow this version also runs the get
     on the background
-    
+
     Inserting again will not cause any errors, so this is safe
     for multiple executions
 
     :param user: The user for which we are storing
     :type user: User object
-    
+
     :param facebook: The graph connection to facebook
     :type facebook: FacebookUserConverter object
     '''
@@ -55,7 +62,7 @@ def store_friends(user, friends):
 
     :param user: The user for which we are storing
     :type user: User object
-    
+
     :param friends: List of your friends
     :type friends: list
     '''
@@ -71,13 +78,13 @@ def get_and_store_friends(user, facebook):
     '''
     Since facebook is quite slow this version also runs the get
     on the background
-    
+
     Inserting again will not cause any errors, so this is safe
     for multiple executions
 
     :param user: The user for which we are storing
     :type user: User object
-    
+
     :param facebook: The graph connection to facebook
     :type facebook: FacebookUserConverter object
     '''
@@ -95,7 +102,7 @@ def async_connect_user(request, graph):
     '''
     Runs the whole connect flow in the background.
     Saving your webservers from facebook fluctuations
-    
+
     Currently this has not yet been implemented.
     It will be possible to run this command 1-N times
     '''

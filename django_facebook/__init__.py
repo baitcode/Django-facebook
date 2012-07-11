@@ -4,7 +4,11 @@ __credits__ = ['Thierry Schellenbach, mellowmorning.com, @tschellenbach']
 
 
 __license__ = 'BSD'
+<<<<<<< HEAD
 __version__ = '4.0.4'
+=======
+__version__ = '4.0.10'
+>>>>>>> upstream/master
 __maintainer__ = 'Thierry Schellenbach'
 __email__ = 'thierryschellenbach@gmail.com'
 __status__ = 'Production'

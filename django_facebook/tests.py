@@ -1,15 +1,15 @@
 from __future__ import with_statement
 from django.contrib.auth.models import AnonymousUser, User
-from django_facebook import settings as facebook_settings
-from django_facebook import exceptions as facebook_exceptions
+from django.core.urlresolvers import reverse
+from django.test.client import Client
+from django_facebook import settings as facebook_settings, signals
+from django_facebook.api import get_facebook_graph, get_persistent_graph
 from django_facebook.auth_backends import FacebookBackend
 from django_facebook.connect import (_register_user, connect_user,
                                      CONNECT_ACTIONS)
 from django_facebook.tests_utils.base import FacebookTest
 from django_facebook.utils import get_profile_class
-from django_facebook.api import (get_facebook_graph, get_facebook_user_converter_class,
-                                 get_persistent_graph)
-from django_facebook import signals
+from django_facebook.api import ( get_facebook_user_converter_class )
 import logging
 from open_facebook.api import FacebookConnection
 from functools import partial
@@ -17,10 +17,68 @@ from django_facebook.utils import cleanup_oauth_url
 from django_facebook.tests_utils.base import RequestMock
 
 logger = logging.getLogger(__name__)
+from django_facebook.tests_utils.base import  LiveFacebookTest
+from open_facebook.api import  FacebookAuthorization
 
 
+logger = logging.getLogger(__name__)
 __doctests__ = ['django_facebook.api']
 
+
+class TestUserTest(LiveFacebookTest):
+    def test_create_test_user(self):
+        #Also, somehow unittest.skip doesnt work with travis ci?
+        return 'Skipping since you might have created test users manually, lets not delete them :)'
+        #start by clearing out our test users (maybe this isnt safe to use in testing)
+        #if other people create test users manualy this could be annoying
+        app_access_token = FacebookAuthorization.get_cached_app_access_token()
+        FacebookAuthorization.delete_test_users(app_access_token)
+        #the permissions for which we want a test user
+        permissions = ['email', 'publish_actions']
+        #gets the test user object
+        test_user = FacebookAuthorization.get_or_create_test_user(app_access_token, permissions)
+        graph = test_user.graph()
+        me = graph.me()
+        assert me
+
+
+class ExtendTokenTest(LiveFacebookTest):
+    def test_extend_token(self):
+        return 'this doesnt work in travis, but locally its fine... weird'
+        app_access_token = FacebookAuthorization.get_cached_app_access_token()
+        test_user = FacebookAuthorization.get_or_create_test_user(app_access_token)
+        access_token = test_user.access_token
+        results = FacebookAuthorization.extend_access_token(access_token)
+        if 'access_token' not in results:
+            raise ValueError('we didnt get a fresh token')
+
+
+class ConnectViewTest(LiveFacebookTest):
+    def test_register(self):
+        return 'currently this doesnt work reliably with the live facebook api'
+        #setup the test user
+        permissions = facebook_settings.FACEBOOK_DEFAULT_SCOPE
+        app_access_token = FacebookAuthorization.get_cached_app_access_token()
+        test_user = FacebookAuthorization.get_or_create_test_user(app_access_token, permissions)
+
+        #test the connect view in the registration mode (empty db)
+        c = Client()
+        url = reverse('facebook_connect')
+        access_token = test_user.access_token
+        response = c.get(url, {'facebook_login': '1', 'access_token': access_token})
+        self.assertEqual(response.status_code, 302)
+        user = User.objects.all().order_by('-id')[:1][0]
+        profile = user.get_profile()
+        self.assertEqual(access_token, profile.access_token)
+
+        #test the login flow
+        response = c.get(url, {'facebook_login': '1', 'access_token': access_token})
+        self.assertEqual(response.status_code, 302)
+        new_user = User.objects.all().order_by('-id')[:1][0]
+        new_profile = user.get_profile()
+        self.assertEqual(access_token, new_profile.access_token)
+
+        self.assertEqual(user, new_user)
 
 
 class UserConnectTest(FacebookTest):
@@ -34,7 +92,7 @@ class UserConnectTest(FacebookTest):
         request.session = {}
         request.user = AnonymousUser()
         get_persistent_graph(request, access_token='short_username')
-        
+
     def test_gender_matching(self):
         request = RequestMock().get('/')
         request.session = {}

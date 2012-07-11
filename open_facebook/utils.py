@@ -1,3 +1,4 @@
+import functools
 import logging
 import re
 import sys
@@ -18,8 +19,8 @@ def base64_url_decode_php_style(inp):
     import base64
     padding_factor = (4 - len(inp) % 4) % 4
     inp += "=" * padding_factor
-    return base64.b64decode(unicode(inp).translate(
-        dict(zip(map(ord, u'-_'), u'+/'))))
+    tmp = dict(zip(map(ord, u'-_'), u'+/'))
+    return base64.b64decode(unicode(inp).translate(tmp))
 
 
 def encode_params(params_dict):
@@ -150,3 +151,40 @@ def merge_urls(generated_url, human_url):
         out_args.append(u'%s=%s' % (k, hum_dict.get(k, v)))
 
     return u'%s?%s' % (gen_path, '&'.join(out_args))
+
+
+class memoized(object):
+    '''Decorator. Caches a function's return value each time it is called.
+    If called later with the same arguments, the cached value is returned 
+    (not reevaluated).
+    '''
+    def __init__(self, func):
+        self.func = func
+        self.cache = {}
+    def __call__(self, *args):
+        try:
+            return self.cache[args]
+        except KeyError:
+            value = self.func(*args)
+            self.cache[args] = value
+            return value
+        except TypeError:
+            # uncachable -- for instance, passing a list as an argument.
+            # Better to not cache than to blow up entirely.
+            return self.func(*args)
+    def __repr__(self):
+        '''Return the function's docstring.'''
+        return self.func.__doc__
+    def __get__(self, obj, objtype):
+        '''Support instance methods.'''
+        return functools.partial(self.__call__, obj)
+  
+  
+def camel_to_underscore(name):
+    '''Convert camelcase style naming to underscore style naming
+    
+    e.g. SpamEggs -> spam_eggs '''
+    import string
+    for c in string.ascii_uppercase:
+        name = name.replace(c, '_%c' % c)
+    return name.strip('_').lower()

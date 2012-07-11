@@ -6,7 +6,6 @@ import re
 from django_facebook import settings as facebook_settings
 from django.utils.encoding import iri_to_uri
 from django.template.loader import render_to_string
-from django_facebook.registration_backends import FacebookRegistrationBackend
 
 
 logger = logging.getLogger(__name__)
@@ -111,7 +110,8 @@ class CanvasRedirect(HttpResponse):
         js_redirect = render_to_string('django_facebook/canvas_redirect.html', context)
         
         super(CanvasRedirect, self).__init__(js_redirect)
-        
+
+
 def response_redirect(redirect_url, canvas=False):
     '''
     Abstract away canvas redirects
@@ -120,6 +120,7 @@ def response_redirect(redirect_url, canvas=False):
         return CanvasRedirect(redirect_url)
     
     return HttpResponseRedirect(redirect_url)
+
 
 def next_redirect(request, default='/', additional_params=None,
                   next_key='next', redirect_url=None, canvas=False):
@@ -232,7 +233,6 @@ def get_registration_backend():
         backend = backend_class()
         
     return backend
-
 
 
 def get_django_registration_version():
@@ -352,6 +352,31 @@ def cleanup_oauth_url(redirect_uri):
     return redirect_uri
 
 
+<<<<<<< HEAD
+=======
+def replication_safe(f):
+    '''
+    Usually views which do a POST will require the next page to be 
+    read from the master database. (To prevent issues with replication lag).
+    
+    However certain views like login do not have this issue.
+    They do a post, but don't modify data which you'll show on subsequent pages.
+    
+    This decorators marks these views as safe.
+    This ensures requests on the next page are allowed to use the slave db
+    '''
+    from functools import wraps
+
+    @wraps(f)
+    def wrapper(request, *args, **kwargs):
+        request.replication_safe = True
+        response = f(request, *args, **kwargs)
+        return response
+    
+    return wrapper
+
+
+>>>>>>> upstream/master
 def get_class_from_string(path, default='raise'):
     """
     Return the class specified by the string.
@@ -387,3 +412,5 @@ def get_class_from_string(path, default='raise'):
         else:
             backend_class = default
     return backend_class
+
+
